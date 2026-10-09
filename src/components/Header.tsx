@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import NavLinks from "./NavLinks";
+import Marquee from "./Marquee";
 
 const Header = () => {
     const date = new Date().toLocaleDateString("bn-BD", {
@@ -57,6 +58,9 @@ const Header = () => {
 
             {/* Second Row: Middle Category Links */}
             <NavLinks />
+
+            {/* Third Row: Infinite Price Ticker Marquee */}
+            <Marquee />
         </header>
     );
 };
