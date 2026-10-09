@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import NavLinks from "./NavLinks";
 
 const Header = () => {
     const date = new Date().toLocaleDateString("bn-BD", {
@@ -11,6 +12,7 @@ const Header = () => {
 
     return (
         <header className="w-full border-b border-gray-200/80 bg-[#f8faf7]">
+            {/* Top Row: Logo, Brand & Auth Buttons */}
             <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
                 {/* Left side: Logo & Brand Name + Bangla Date */}
                 <div className="flex items-center gap-3">
@@ -52,6 +54,9 @@ const Header = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Second Row: Middle Category Links */}
+            <NavLinks />
         </header>
     );
 };
