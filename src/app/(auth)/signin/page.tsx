@@ -17,10 +17,20 @@ export default function SignInPage() {
   const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // If already logged in, redirect to home page
+  // If already logged in, redirect to the requested page.
   useEffect(() => {
     if (!isSessionLoading && session?.user) {
-      router.push("/");
+      const params = new URLSearchParams(window.location.search);
+      const callbackUrl = params.get("callbackUrl");
+
+      const destination =
+        callbackUrl &&
+          callbackUrl.startsWith("/") &&
+          !callbackUrl.startsWith("//")
+          ? callbackUrl
+          : "/";
+
+      router.replace(destination);
     }
   }, [session, isSessionLoading, router]);
 
@@ -55,11 +65,21 @@ export default function SignInPage() {
     setIsLoading(true);
 
     try {
+      const params = new URLSearchParams(window.location.search);
+      const requestedUrl = params.get("callbackUrl");
+
+      const callbackURL =
+        requestedUrl &&
+          requestedUrl.startsWith("/") &&
+          !requestedUrl.startsWith("//")
+          ? requestedUrl
+          : "/";
+
       const res = await signIn.email({
         email: trimmedEmail,
         password,
         rememberMe: true,
-        callbackURL: "/",
+        callbackURL,
       });
 
       if (res?.error) {
@@ -70,7 +90,18 @@ export default function SignInPage() {
         toast.error(errorText);
       } else {
         toast.success("সফলভাবে সাইন ইন হয়েছে! স্বাগতম।");
-        router.push("/");
+
+        const params = new URLSearchParams(window.location.search);
+        const requestedUrl = params.get("callbackUrl");
+
+        const destination =
+          requestedUrl &&
+            requestedUrl.startsWith("/") &&
+            !requestedUrl.startsWith("//")
+            ? requestedUrl
+            : "/";
+
+        router.replace(destination);
         router.refresh();
       }
     } catch (err: unknown) {
@@ -90,9 +121,19 @@ export default function SignInPage() {
 
     try {
       toast.info(`${providerName} দিয়ে লগইন করা হচ্ছে...`);
+      const params = new URLSearchParams(window.location.search);
+      const requestedUrl = params.get("callbackUrl");
+
+      const callbackURL =
+        requestedUrl &&
+          requestedUrl.startsWith("/") &&
+          !requestedUrl.startsWith("//")
+          ? requestedUrl
+          : "/";
+
       const res = await signIn.social({
         provider,
-        callbackURL: "/",
+        callbackURL,
       });
 
       if (res?.error) {

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Product } from "@/components/ProductDetails";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 interface Market {
     market: string;
@@ -74,6 +77,20 @@ export default async function ProductDetailPage({
     params,
 }: ProductDetailProps) {
     const { slug } = await params;
+
+    // Check whether the user is signed in.
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    // Redirect unsigned users to the sign-in page.
+    if (!session) {
+        redirect(
+            `/signin?callbackUrl=${encodeURIComponent(
+                `/products/${slug}`
+            )}`
+        );
+    }
 
     let product: ProductDetail | null = null;
     let categories: Category[] = [];
