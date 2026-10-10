@@ -1,16 +1,11 @@
 import { betterAuth } from "better-auth";
-import Database from "better-sqlite3";
-import path from "path";
+import { MongoClient } from "mongodb";
+import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
-const dbPath = path.resolve(process.cwd(), "auth.sqlite");
-const db = new Database(dbPath);
+const client = new MongoClient(process.env.MONGO_DB_URL!);
+const db = client.db("better-auth-db");
 
 export const auth = betterAuth({
-  baseURL:
-    process.env.BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000",
-  database: db,
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -25,4 +20,8 @@ export const auth = betterAuth({
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "mock_github_secret",
     },
   },
+  database: mongodbAdapter(db, {
+    // Optional: if you don't provide a client, database transactions won't be enabled.
+    client
+  }),
 });
