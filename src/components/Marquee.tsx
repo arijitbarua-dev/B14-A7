@@ -27,7 +27,7 @@ const unitMap: Record<string, string> = {
 const toBn = (n: number | string) => n?.toString().replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]) || ""
 
 const Marquee = async () => {
-    const res = await fetch("https://api.abcz.workers.dev/api/bazardor/products")
+    const res = await fetch("https://openapi.programming-hero.com/api/bazardor/products")
     const data = await res.json()
     const headlines: Product[] = Array.isArray(data) ? data : data.data || []
 

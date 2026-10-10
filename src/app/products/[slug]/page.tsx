@@ -28,11 +28,11 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
 
     let product: Product | null = null;
     try {
-        const res = await fetch(`https://api.abcz.workers.dev/api/bazardor/products/${slug}`);
+        const res = await fetch(`https://openapi.programming-hero.com/api/bazardor/products/${slug}`);
         const data = await res.json();
         product = data.data || data;
     } catch {
-        const res = await fetch("https://api.abcz.workers.dev/api/bazardor/products");
+        const res = await fetch("https://openapi.programming-hero.com/api/bazardor/products");
         const data = await res.json();
         const list: Product[] = Array.isArray(data) ? data : data?.data || [];
         product = list.find((p) => p.slug === slug) || null;

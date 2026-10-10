@@ -4,7 +4,7 @@ const ProductsCard = async () => {
     let products: Product[] = [];
 
     try {
-        const res = await fetch("https://api.abcz.workers.dev/api/bazardor/products", {
+        const res = await fetch("https://openapi.programming-hero.com/api/bazardor/products", {
             next: { revalidate: 60 },
         });
         const data = await res.json();

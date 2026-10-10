@@ -142,7 +142,7 @@ export default function CategoryPage({
 
             try {
                 const response = await fetch(
-                    "https://api.abcz.workers.dev/api/bazardor/categories",
+                    "https://openapi.programming-hero.com/api/bazardor/categories",
                     { cache: "no-store" }
                 );
 
@@ -195,7 +195,7 @@ export default function CategoryPage({
 
             try {
                 const response = await fetch(
-                    "https://api.abcz.workers.dev/api/bazardor/products",
+                    "https://openapi.programming-hero.com/api/bazardor/products",
                     { cache: "no-store" }
                 );
 

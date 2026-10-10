@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { authClient } from "@/lib/auth-client";
+import Image from "next/image";
 
 export default function AuthButtons() {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function AuthButtons() {
         >
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 text-lg font-bold text-[#039648]">
             {user.image ? (
-              <img
+              <Image
                 src={user.image}
                 alt=""
                 className="h-full w-full object-cover"

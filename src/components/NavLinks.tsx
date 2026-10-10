@@ -27,7 +27,7 @@ const NavLinks = () => {
     const [categories, setCategories] = useState<Category[]>(defaultCategories);
 
     useEffect(() => {
-        fetch("https://api.abcz.workers.dev/api/bazardor/categories")
+        fetch("https://openapi.programming-hero.com/api/bazardor/categories")
             .then((res) => res.json())
             .then((data) => {
                 const list = Array.isArray(data) ? data : data?.data;
