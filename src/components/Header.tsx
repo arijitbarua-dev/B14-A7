@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import NavLinks from "./NavLinks";
 import Marquee from "./Marquee";
+import AuthButtons from "./AuthButtons";
 
 const Header = () => {
     const date = new Date().toLocaleDateString("bn-BD", {
@@ -46,14 +47,7 @@ const Header = () => {
                 </div>
 
                 {/* Right side: Auth buttons */}
-                <div className="flex items-center gap-3 text-sm font-semibold">
-                    <button className="cursor-pointer rounded-xl px-4 py-2 text-gray-800 transition-all duration-200 hover:bg-[#039648]/10 hover:text-[#039648] active:scale-95">
-                        সাইন ইন
-                    </button>
-                    <button className="cursor-pointer rounded-xl bg-[#039648] px-5 py-2.5 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#027e3c] hover:shadow-md hover:scale-[1.03] active:scale-95">
-                        সাইন আপ
-                    </button>
-                </div>
+                <AuthButtons />
             </div>
 
             {/* Second Row: Middle Category Links */}
