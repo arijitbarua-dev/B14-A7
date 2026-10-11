@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Product } from "@/components/ProductDetails";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 interface Market {
     market: string;
@@ -51,13 +51,21 @@ const toBanglaNum = (num: number | string): string => {
     const formatted =
         typeof num === "number"
             ? num.toLocaleString("en-US", {
-                maximumFractionDigits: 1,
-            })
+                  maximumFractionDigits: 1,
+              })
             : num.toString();
 
     const banglaDigits = [
-        "০", "১", "২", "৩", "৪",
-        "৫", "৬", "৭", "৮", "৯",
+        "০",
+        "১",
+        "২",
+        "৩",
+        "৪",
+        "৫",
+        "৬",
+        "৭",
+        "৮",
+        "৯",
     ];
 
     return formatted.replace(/\d/g, (digit) =>
@@ -78,23 +86,11 @@ export default async function ProductDetailPage({
 }: ProductDetailProps) {
     const { slug } = await params;
 
-    // Check whether the user is signed in.
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-
-    // Redirect unsigned users to the sign-in page.
-    if (!session) {
-        redirect(
-            `/signin?callbackUrl=${encodeURIComponent(
-                `/products/${slug}`
-            )}`
-        );
-    }
-
     let product: ProductDetail | null = null;
     let categories: Category[] = [];
+    let fetchError = false;
 
+    // Fetch product and category data
     try {
         const [productsRes, categoriesRes] = await Promise.all([
             fetch(
@@ -128,23 +124,81 @@ export default async function ProductDetailPage({
         product = products.find((item) => item.slug === slug) ?? null;
     } catch (error) {
         console.error("Product fetch error:", error);
+        fetchError = true;
     }
 
-    if (!product) {
+    // Friendly 404 for an unknown product
+    if (!fetchError && !product) {
         return (
-            <main className="min-h-screen bg-[#f0f5f1] px-4 py-16">
-                <div className="mx-auto max-w-4xl rounded-2xl border border-gray-200 bg-white p-8 text-center">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        পণ্য পাওয়া যায়নি
+            <main className="flex min-h-screen items-start justify-center bg-[#edf4ee] px-4 pt-[58px] pb-12">
+                <div className="w-full max-w-[504px] rounded-[18px] border border-[#dce7de] bg-white px-6 py-10 text-center sm:px-10 sm:py-8">
+                    <h1 className="text-[76px] font-extrabold leading-[1.15] tracking-tight text-[#039648] sm:text-[80px]">
+                        404
                     </h1>
+
+                    <h2 className="mt-3 text-xl font-bold leading-snug text-gray-900 sm:text-[23px]">
+                        দুঃখিত! পেজটি খুঁজে পাওয়া যায়নি
+                    </h2>
+
+                    <p className="mx-auto mt-3 max-w-[410px] text-sm leading-6 text-[#78839a] sm:text-base">
+                        আপনি যে পেজটি খুঁজছেন সেটি পাওয়া যায়নি।
+                        ঠিকানাটি ভুল হতে পারে অথবা পেজটি সরিয়ে ফেলা হয়েছে।
+                    </p>
+
                     <Link
                         href="/"
-                        className="mt-4 inline-block text-sm font-semibold text-[#039648] hover:underline"
+                        className="mt-7 inline-flex min-h-[49px] items-center justify-center rounded-lg bg-[#039648] px-6 py-3 text-base font-bold text-white transition-colors hover:bg-green-700"
                     >
                         ← হোম পেজে ফিরে যান
                     </Link>
                 </div>
             </main>
+        );
+    }
+
+    // API error
+    if (fetchError) {
+        return (
+            <main className="flex min-h-screen items-start justify-center bg-[#edf4ee] px-4 pt-[58px] pb-12">
+                <div className="w-full max-w-[504px] rounded-[18px] border border-[#dce7de] bg-white px-6 py-10 text-center sm:px-10 sm:py-8">
+                    <h1 className="text-5xl font-extrabold text-[#039648]">
+                        !
+                    </h1>
+
+                    <h2 className="mt-4 text-xl font-bold text-gray-900 sm:text-[23px]">
+                        তথ্য লোড করা যায়নি
+                    </h2>
+
+                    <p className="mx-auto mt-3 max-w-[410px] text-sm leading-6 text-[#78839a] sm:text-base">
+                        ইন্টারনেট সংযোগ পরীক্ষা করে কিছুক্ষণ পর আবার চেষ্টা করুন।
+                    </p>
+
+                    <Link
+                        href="/"
+                        className="mt-7 inline-flex min-h-[49px] items-center justify-center rounded-lg bg-[#039648] px-6 py-3 text-base font-bold text-white transition-colors hover:bg-green-700"
+                    >
+                        ← হোম পেজে ফিরে যান
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    // TypeScript guard
+    if (!product) {
+        return null;
+    }
+
+    // Require authentication after confirming the product exists
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session) {
+        redirect(
+            `/signin?callbackUrl=${encodeURIComponent(
+                `/product/${slug}`
+            )}`
         );
     }
 
@@ -192,9 +246,9 @@ export default async function ProductDetailPage({
     const avgPrice =
         markets.length > 0
             ? markets.reduce(
-                (total, market) => total + market.average,
-                0
-            ) / markets.length
+                  (total, market) => total + market.average,
+                  0
+              ) / markets.length
             : product.today;
 
     return (
@@ -205,14 +259,18 @@ export default async function ProductDetailPage({
                     <Link href="/" className="hover:text-[#039648]">
                         হোম
                     </Link>
+
                     <span>›</span>
+
                     <Link
                         href={`/category/${category?.slug || product.category || "chal"}`}
                         className="transition-colors hover:text-[#039648]"
                     >
                         {categoryName || "পণ্য"}
                     </Link>
+
                     <span>›</span>
+
                     <span className="font-medium text-[#344139]">
                         {product.nameBn}
                     </span>
@@ -232,21 +290,30 @@ export default async function ProductDetailPage({
                                 <h1 className="text-xl font-extrabold leading-tight text-[#27332b] sm:text-[30px]">
                                     {product.nameBn}
                                 </h1>
+
                                 <p className="mt-1 text-xs text-[#758078] sm:text-sm">
                                     প্রতি {unitBn}
                                 </p>
+
                                 <p className="mt-2 text-xs leading-5 text-[#27332b] sm:text-[13px]">
                                     গতকালের তুলনায় আজ দাম{" "}
-                                    {isUp ? "বেড়েছে" : isDown ? "কমেছে" : "অপরিবর্তিত রয়েছে"}
+                                    {isUp
+                                        ? "বেড়েছে"
+                                        : isDown
+                                          ? "কমেছে"
+                                          : "অপরিবর্তিত রয়েছে"}
+
                                     {(isUp || isDown) && (
                                         <>
                                             {" · "}
                                             {toBanglaNum(
                                                 Math.abs(
                                                     product.today -
-                                                    (product.yesterday ?? product.today)
+                                                        (product.yesterday ??
+                                                            product.today)
                                                 )
-                                            )} টাকা
+                                            )}{" "}
+                                            টাকা
                                         </>
                                     )}
                                 </p>
@@ -257,19 +324,22 @@ export default async function ProductDetailPage({
                             <p className="text-[10px] text-[#7b857d] sm:text-xs">
                                 আজকের বাজার দর
                             </p>
+
                             <p className="text-2xl font-extrabold leading-8 text-[#27332b] sm:text-3xl sm:leading-9">
                                 {toBanglaNum(product.today)}
                             </p>
+
                             <p className="text-[10px] text-[#7b857d] sm:text-xs">
                                 টাকা / {unitBn}
                             </p>
 
                             {(isUp || isDown) && (
                                 <p
-                                    className={`mt-1 text-[10px] font-bold sm:text-xs ${isUp
-                                        ? "text-red-600"
-                                        : "text-emerald-600"
-                                        }`}
+                                    className={`mt-1 text-[10px] font-bold sm:text-xs ${
+                                        isUp
+                                            ? "text-red-600"
+                                            : "text-emerald-600"
+                                    }`}
                                 >
                                     {isUp ? "▲" : "▼"}{" "}
                                     {toBanglaNum(pctVal)}%
@@ -290,12 +360,14 @@ export default async function ProductDetailPage({
                             <p className="text-xs text-[#7a847c]">
                                 সর্বনিম্ন দাম
                             </p>
+
                             <p className="mt-1 text-2xl font-extrabold leading-8 text-emerald-600">
                                 {toBanglaNum(minPrice)}{" "}
                                 <span className="text-sm font-medium">
                                     টাকা
                                 </span>
                             </p>
+
                             <p className="mt-1 text-xs text-[#7a847c]">
                                 সবচেয়ে কম দামের বাজার
                             </p>
@@ -305,12 +377,14 @@ export default async function ProductDetailPage({
                             <p className="text-xs text-[#7a847c]">
                                 সর্বোচ্চ দাম
                             </p>
+
                             <p className="mt-1 text-2xl font-extrabold leading-8 text-red-500">
                                 {toBanglaNum(maxPrice)}{" "}
                                 <span className="text-sm font-medium">
                                     টাকা
                                 </span>
                             </p>
+
                             <p className="mt-1 text-xs text-[#7a847c]">
                                 সবচেয়ে বেশি দামের বাজার
                             </p>
@@ -320,12 +394,14 @@ export default async function ProductDetailPage({
                             <p className="text-xs text-[#7a847c]">
                                 গড় দাম
                             </p>
+
                             <p className="mt-1 text-2xl font-extrabold leading-8 text-emerald-600">
                                 {toBanglaNum(Math.round(avgPrice))}{" "}
                                 <span className="text-sm font-medium">
                                     টাকা
                                 </span>
                             </p>
+
                             <p className="mt-1 text-xs text-[#7a847c]">
                                 প্রতি {unitBn}-এর হিসাবে
                             </p>
@@ -347,15 +423,19 @@ export default async function ProductDetailPage({
                                         <th className="px-4 py-3 font-semibold">
                                             বাজার
                                         </th>
+
                                         <th className="px-4 py-3 font-semibold">
                                             বিভাগ
                                         </th>
+
                                         <th className="px-4 py-3 text-right font-semibold">
                                             সর্বনিম্ন
                                         </th>
+
                                         <th className="px-4 py-3 text-right font-semibold">
                                             সর্বোচ্চ
                                         </th>
+
                                         <th className="px-4 py-3 text-right font-semibold">
                                             গড়
                                         </th>
@@ -371,19 +451,24 @@ export default async function ProductDetailPage({
                                             <td className="px-4 py-3 font-medium text-[#344139]">
                                                 {market.market}
                                             </td>
+
                                             <td className="px-4 py-3 text-[#344139]">
                                                 {market.division}
                                             </td>
+
                                             <td className="whitespace-nowrap px-4 py-3 text-right text-[#344139]">
                                                 {toBanglaNum(market.min)} টাকা
                                             </td>
+
                                             <td className="whitespace-nowrap px-4 py-3 text-right text-[#344139]">
                                                 {toBanglaNum(market.max)} টাকা
                                             </td>
+
                                             <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-[#27332b]">
                                                 {toBanglaNum(
                                                     Math.round(market.average)
-                                                )} টাকা
+                                                )}{" "}
+                                                টাকা
                                             </td>
                                         </tr>
                                     ))}

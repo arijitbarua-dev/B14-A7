@@ -24,15 +24,16 @@ type CategoryProduct = Product & {
 };
 
 const toEnglishDigits = (value: string) =>
-    value
-        .replace(/[০-৯]/g, (digit) =>
-            String("০১২৩৪৫৬৭৮৯".indexOf(digit))
-        );
+    value.replace(/[০-৯]/g, (digit) =>
+        String("০১২৩৪৫৬৭৮৯".indexOf(digit))
+    );
 
 function normalizeCategory(data: Record<string, unknown>): Category {
     return {
         id: (data.id ?? data._id ?? data.slug ?? "") as string | number,
-        slug: String(data.slug ?? data.categorySlug ?? data.category_slug ?? ""),
+        slug: String(
+            data.slug ?? data.categorySlug ?? data.category_slug ?? ""
+        ),
         nameBn: String(
             data.nameBn ??
                 data.name_bn ??
@@ -109,11 +110,13 @@ function SkeletonCard() {
         <div className="h-[110px] animate-pulse rounded-2xl border border-[#e0e9e1] bg-white/80 p-3">
             <div className="flex gap-3">
                 <div className="h-10 w-10 rounded-xl bg-gray-200" />
+
                 <div className="flex-1 space-y-2 pt-1">
                     <div className="h-4 w-24 rounded bg-gray-200" />
                     <div className="h-3 w-16 rounded bg-gray-100" />
                 </div>
             </div>
+
             <div className="mt-4 h-4 w-28 rounded bg-gray-200" />
         </div>
     );
@@ -125,7 +128,14 @@ export default function CategoryPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug: routeSlug } = use(params);
-    const slug = decodeURIComponent(routeSlug).toLowerCase();
+
+    const slug = useMemo(() => {
+        try {
+            return decodeURIComponent(routeSlug).toLowerCase();
+        } catch {
+            return "";
+        }
+    }, [routeSlug]);
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [products, setProducts] = useState<CategoryProduct[]>([]);
@@ -134,6 +144,7 @@ export default function CategoryPage({
     const [fetchError, setFetchError] = useState(false);
     const [sort, setSort] = useState("default");
 
+    // Load categories
     useEffect(() => {
         let active = true;
 
@@ -151,6 +162,7 @@ export default function CategoryPage({
                 }
 
                 const data = await response.json();
+
                 const list = Array.isArray(data)
                     ? data
                     : data?.data ?? data?.categories ?? [];
@@ -163,7 +175,9 @@ export default function CategoryPage({
                     .map((item: Record<string, unknown>) =>
                         normalizeCategory(item)
                     )
-                    .filter((item: Category) => item.slug && item.nameBn);
+                    .filter(
+                        (item: Category) => item.slug && item.nameBn
+                    );
 
                 if (active) {
                     setCategories(normalized);
@@ -176,7 +190,9 @@ export default function CategoryPage({
                     setFetchError(true);
                 }
             } finally {
-                if (active) setCategoriesLoading(false);
+                if (active) {
+                    setCategoriesLoading(false);
+                }
             }
         }
 
@@ -187,6 +203,7 @@ export default function CategoryPage({
         };
     }, []);
 
+    // Load products
     useEffect(() => {
         let active = true;
 
@@ -204,11 +221,14 @@ export default function CategoryPage({
                 }
 
                 const data = await response.json();
+
                 const list: CategoryProduct[] = Array.isArray(data)
                     ? data
                     : data?.data ?? data?.products ?? [];
 
-                if (active) setProducts(list);
+                if (active) {
+                    setProducts(list);
+                }
             } catch (error) {
                 console.error("Failed to fetch products:", error);
 
@@ -217,7 +237,9 @@ export default function CategoryPage({
                     setFetchError(true);
                 }
             } finally {
-                if (active) setProductsLoading(false);
+                if (active) {
+                    setProductsLoading(false);
+                }
             }
         }
 
@@ -228,10 +250,16 @@ export default function CategoryPage({
         };
     }, []);
 
-    const category = categories.find(
-        (item) => item.slug.toLowerCase() === slug
+    // Find category by slug
+    const category = useMemo(
+        () =>
+            categories.find(
+                (item) => item.slug.toLowerCase() === slug
+            ),
+        [categories, slug]
     );
 
+    // Filter and sort products
     const filteredProducts = useMemo(() => {
         if (!category) return [];
 
@@ -264,12 +292,14 @@ export default function CategoryPage({
 
     const loading = categoriesLoading || productsLoading;
 
+    // Loading skeleton
     if (loading) {
         return (
             <main className="min-h-screen bg-[#edf4ee] px-4 py-5 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-5xl">
                     <div className="mb-5 flex min-h-[74px] animate-pulse items-center rounded-xl border border-[#e0e9e1] bg-white/80 px-5">
                         <div className="h-11 w-11 rounded-xl bg-gray-200" />
+
                         <div className="ml-3 space-y-2">
                             <div className="h-5 w-24 rounded bg-gray-200" />
                             <div className="h-3 w-48 rounded bg-gray-100" />
@@ -292,45 +322,95 @@ export default function CategoryPage({
         );
     }
 
-    if (fetchError || !category || filteredProducts.length === 0) {
-        const title = fetchError
-            ? "পণ্য লোড করা যায়নি"
-            : !category
-              ? "বিভাগ পাওয়া যায়নি"
-              : "পণ্য পাওয়া যায়নি";
-
-        const message = fetchError
-            ? "ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।"
-            : !category
-              ? "এই বিভাগের ঠিকানা সঠিক নয়।"
-              : "এই বিভাগে এখন কোনো পণ্য পাওয়া যাচ্ছে না।";
-
+    // Friendly 404 for invalid category slug
+    if (!fetchError && !category) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-[#edf4ee] px-4 py-12">
-                <div className="w-full max-w-md rounded-2xl border border-[#e0e9e1] bg-white p-8 text-center">
-                    <div className="mb-3 text-4xl">
-                        {category?.icon || "🔎"}
-                    </div>
-
-                    <h1 className="text-xl font-bold text-gray-900">
-                        {title}
+            <main className="flex min-h-screen items-start justify-center bg-[#edf4ee] px-4 pt-[58px] pb-12">
+                <div className="w-full max-w-[504px] rounded-[18px] border border-[#dce7de] bg-white px-6 py-10 text-center sm:px-10 sm:py-8">
+                    <h1 className="text-[76px] font-extrabold leading-[1.15] tracking-tight text-[#039648] sm:text-[80px]">
+                        404
                     </h1>
 
-                    <p className="mt-2 text-sm text-gray-500">
-                        {message}
+                    <h2 className="mt-3 text-xl font-bold leading-snug text-gray-900 sm:text-[23px]">
+                        দুঃখিত! পেজটি খুঁজে পাওয়া যায়নি
+                    </h2>
+
+                    <p className="mx-auto mt-3 max-w-[410px] text-sm leading-6 text-[#78839a] sm:text-base">
+                        আপনি যে পেজটি খুঁজছেন সেটি পাওয়া যায়নি।
+                        ঠিকানাটি ভুল হতে পারে অথবা পেজটি সরিয়ে ফেলা হয়েছে।
                     </p>
 
                     <Link
                         href="/"
-                        className="mt-5 inline-flex rounded-lg bg-[#039648] px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                        className="mt-7 inline-flex min-h-[49px] items-center justify-center rounded-lg bg-[#039648] px-6 py-3 text-base font-bold text-white transition-colors hover:bg-green-700"
                     >
-                        হোম পেজে ফিরে যান
+                        ← হোম পেজে ফিরে যান
                     </Link>
                 </div>
             </main>
         );
     }
 
+    // API error
+    if (fetchError) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-[#edf4ee] px-4 py-12">
+                <div className="w-full max-w-md rounded-2xl border border-[#e0e9e1] bg-white p-8 text-center">
+                    <div className="mb-3 text-4xl">⚠️</div>
+
+                    <h1 className="text-xl font-bold text-gray-900">
+                        তথ্য লোড করা যায়নি
+                    </h1>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                        ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।
+                    </p>
+
+                    <Link
+                        href="/"
+                        className="mt-5 inline-flex rounded-lg bg-[#039648] px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                    >
+                        ← হোম পেজে ফিরে যান
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    // TypeScript guard
+    if (!category) {
+        return null;
+    }
+
+    // Category exists, but has no products
+    if (filteredProducts.length === 0) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-[#edf4ee] px-4 py-12">
+                <div className="w-full max-w-md rounded-2xl border border-[#e0e9e1] bg-white p-8 text-center">
+                    <div className="mb-3 text-4xl">
+                        {category.icon || "🛒"}
+                    </div>
+
+                    <h1 className="text-xl font-bold text-gray-900">
+                        পণ্য পাওয়া যায়নি
+                    </h1>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                        এই বিভাগে এখন কোনো পণ্য পাওয়া যাচ্ছে না।
+                    </p>
+
+                    <Link
+                        href="/"
+                        className="mt-5 inline-flex rounded-lg bg-[#039648] px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                    >
+                        ← হোম পেজে ফিরে যান
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    // Category page
     return (
         <main className="min-h-screen bg-[#edf4ee] px-4 py-5 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-5xl">
@@ -385,13 +465,14 @@ export default function CategoryPage({
                     </div>
                 </div>
 
-                {/* Product cards */}
+                {/* Product count */}
                 <p className="mb-3 mt-3 text-xs text-gray-500">
                     মোট{" "}
                     {filteredProducts.length.toLocaleString("bn-BD")} টি
                     পণ্য দেখানো হচ্ছে
                 </p>
 
+                {/* Product cards */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredProducts.map((product) => (
                         <ProductCard
