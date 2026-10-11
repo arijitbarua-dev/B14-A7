@@ -6,6 +6,9 @@ const client = new MongoClient(process.env.MONGO_DB_URL!);
 const db = client.db("better-auth-db");
 
 export const auth = betterAuth({
+  // Added for production deployment on Vercel
+  baseURL: process.env.BETTER_AUTH_URL,
+  
   emailAndPassword: {
     enabled: true
   },
