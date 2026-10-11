@@ -1,38 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { authClient, signIn } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { data: session, isPending: isSessionLoading } = authClient.useSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "github" | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // If already logged in, redirect to the requested page.
-  useEffect(() => {
-    if (!isSessionLoading && session?.user) {
-      const params = new URLSearchParams(window.location.search);
-      const callbackUrl = params.get("callbackUrl");
-
-      const destination =
-        callbackUrl &&
-          callbackUrl.startsWith("/") &&
-          !callbackUrl.startsWith("//")
-          ? callbackUrl
-          : "/";
-
-      router.replace(destination);
-    }
-  }, [session, isSessionLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,23 +24,38 @@ export default function SignInPage() {
 
     const trimmedEmail = email.trim();
 
-    // Validations
-    if (!trimmedEmail || !password) {
-      const msg = "অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড প্রদান করুন।";
+    // Email validation
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      const msg = !trimmedEmail
+        ? "অনুগ্রহ করে ইমেইল ঠিকানা দিন।"
+        : 'ইমেইলে "@" চিহ্ন থাকতে হবে।';
+
       setErrorMessage(msg);
       toast.warn(msg);
       return;
     }
 
-    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
-      const msg = "অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা প্রদান করুন।";
-      setErrorMessage(msg);
-      toast.warn(msg);
-      return;
-    }
+    // Password validation
+    const passwordErrors = [
+      !password
+        ? "অনুগ্রহ করে পাসওয়ার্ড প্রদান করুন।"
+        : "",
+      password && !/[A-Z]/.test(password)
+        ? "কমপক্ষে একটি বড় হাতের ইংরেজি অক্ষর (A-Z) থাকতে হবে।"
+        : "",
+      password && !/[a-z]/.test(password)
+        ? "কমপক্ষে একটি ছোট হাতের ইংরেজি অক্ষর (a-z) থাকতে হবে।"
+        : "",
+      password && !/[0-9]/.test(password)
+        ? "কমপক্ষে একটি সংখ্যা (0-9) থাকতে হবে।"
+        : "",
+      password && !/[^A-Za-z0-9]/.test(password)
+        ? "কমপক্ষে একটি বিশেষ চিহ্ন (!@#$%) থাকতে হবে।"
+        : "",
+    ].filter(Boolean);
 
-    if (password.length < 8) {
-      const msg = "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।";
+    if (passwordErrors.length > 0) {
+      const msg = passwordErrors[0];
       setErrorMessage(msg);
       toast.warn(msg);
       return;
@@ -70,8 +69,8 @@ export default function SignInPage() {
 
       const callbackURL =
         requestedUrl &&
-          requestedUrl.startsWith("/") &&
-          !requestedUrl.startsWith("//")
+        requestedUrl.startsWith("/") &&
+        !requestedUrl.startsWith("//")
           ? requestedUrl
           : "/";
 
@@ -85,28 +84,23 @@ export default function SignInPage() {
       if (res?.error) {
         const errorText =
           res.error.message ||
-          "ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।";
+          "ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন.";
+
         setErrorMessage(errorText);
         toast.error(errorText);
       } else {
         toast.success("সফলভাবে সাইন ইন হয়েছে! স্বাগতম।");
 
-        const params = new URLSearchParams(window.location.search);
-        const requestedUrl = params.get("callbackUrl");
-
-        const destination =
-          requestedUrl &&
-            requestedUrl.startsWith("/") &&
-            !requestedUrl.startsWith("//")
-            ? requestedUrl
-            : "/";
-
-        router.replace(destination);
+        // Redirect only after successful sign-in
+        router.replace(callbackURL);
         router.refresh();
       }
     } catch (err: unknown) {
       const errorMsg =
-        err instanceof Error ? err.message : "সাইন ইন করতে সমস্যা হয়েছে।";
+        err instanceof Error
+          ? err.message
+          : "সাইন ইন করতে সমস্যা হয়েছে।";
+
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -114,20 +108,24 @@ export default function SignInPage() {
     }
   };
 
-  const handleSocialLogin = async (provider: "google" | "github") => {
+  const handleSocialLogin = async (
+    provider: "google" | "github"
+  ) => {
     setErrorMessage(null);
     setSocialLoading(provider);
+
     const providerName = provider === "google" ? "Google" : "GitHub";
 
     try {
       toast.info(`${providerName} দিয়ে লগইন করা হচ্ছে...`);
+
       const params = new URLSearchParams(window.location.search);
       const requestedUrl = params.get("callbackUrl");
 
       const callbackURL =
         requestedUrl &&
-          requestedUrl.startsWith("/") &&
-          !requestedUrl.startsWith("//")
+        requestedUrl.startsWith("/") &&
+        !requestedUrl.startsWith("//")
           ? requestedUrl
           : "/";
 
@@ -140,6 +138,7 @@ export default function SignInPage() {
         const msg =
           res.error.message ||
           `${providerName} লগইন সম্পন্ন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।`;
+
         setErrorMessage(msg);
         toast.error(msg);
       }
@@ -148,36 +147,13 @@ export default function SignInPage() {
         err instanceof Error
           ? err.message
           : `${providerName} লগইন ব্যর্থ হয়েছে।`;
+
       setErrorMessage(msg);
       toast.error(msg);
     } finally {
       setSocialLoading(null);
     }
   };
-
-  // Skeleton Loader while session is checking
-  if (isSessionLoading) {
-    return (
-      <main className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#f4f8f4] px-4 py-12">
-        <div className="w-full max-w-[460px] animate-pulse space-y-6 rounded-2xl bg-white p-8 shadow-sm border border-gray-100 sm:p-9">
-          <div className="h-8 w-44 mx-auto rounded-lg bg-gray-200"></div>
-          <div className="h-4 w-64 mx-auto rounded bg-gray-100"></div>
-          <div className="space-y-4 pt-4">
-            <div className="h-4 w-16 rounded bg-gray-200"></div>
-            <div className="h-11 rounded-xl bg-gray-100"></div>
-            <div className="h-4 w-20 rounded bg-gray-200"></div>
-            <div className="h-11 rounded-xl bg-gray-100"></div>
-            <div className="h-12 rounded-xl bg-emerald-200"></div>
-          </div>
-          <div className="h-4 w-36 mx-auto rounded bg-gray-200"></div>
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="h-11 rounded-xl bg-gray-100"></div>
-            <div className="h-11 rounded-xl bg-gray-100"></div>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center bg-[#f4f8f4] px-4 py-12">
@@ -213,7 +189,11 @@ export default function SignInPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="space-y-4"
+        >
           {/* Email Field */}
           <div>
             <label
@@ -252,7 +232,7 @@ export default function SignInPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="কমপক্ষে ৮ অক্ষর"
+                placeholder="আপনার পাসওয়ার্ড লিখুন"
                 disabled={isLoading || !!socialLoading}
                 className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:border-[#039648] focus:outline-none focus:ring-2 focus:ring-[#039648]/20 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 required
@@ -263,10 +243,11 @@ export default function SignInPage() {
                 disabled={isLoading || !!socialLoading}
                 tabIndex={-1}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1 cursor-pointer transition-colors"
-                aria-label={isVisible ? "পাসওয়ার্ড লুকান" : "পাসওয়ার্ড দেখুন"}
+                aria-label={
+                  isVisible ? "পাসওয়ার্ড লুকান" : "পাসওয়ার্ড দেখুন"
+                }
               >
                 {isVisible ? (
-                  // Eye Slash Icon
                   <svg
                     className="w-5 h-5"
                     fill="none"
@@ -281,7 +262,6 @@ export default function SignInPage() {
                     />
                   </svg>
                 ) : (
-                  // Eye Icon
                   <svg
                     className="w-5 h-5"
                     fill="none"

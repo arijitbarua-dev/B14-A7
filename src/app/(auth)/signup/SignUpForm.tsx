@@ -15,18 +15,62 @@ export default function SignUpForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Validation states
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Email validation
+  const emailError =
+    emailTouched || submitted
+      ? !email.trim()
+        ? "অনুগ্রহ করে ইমেইল ঠিকানা দিন।"
+        : !email.includes("@")
+          ? 'ইমেইলে "@" চিহ্ন থাকতে হবে।'
+          : ""
+      : "";
+
+  // Password validation
+  const passwordErrors =
+    passwordTouched || submitted
+      ? [
+          !password
+            ? "অনুগ্রহ করে পাসওয়ার্ড প্রদান করুন।"
+            : "",
+          password && password.length < 8
+            ? "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।"
+            : "",
+          password && !/[A-Z]/.test(password)
+            ? "কমপক্ষে একটি বড় হাতের ইংরেজি অক্ষর (A-Z) থাকতে হবে।"
+            : "",
+          password && !/[a-z]/.test(password)
+            ? "কমপক্ষে একটি ছোট হাতের ইংরেজি অক্ষর (a-z) থাকতে হবে।"
+            : "",
+          password && !/[0-9]/.test(password)
+            ? "কমপক্ষে একটি সংখ্যা (0-9) থাকতে হবে।"
+            : "",
+          password && !/[^A-Za-z0-9]/.test(password)
+            ? "কমপক্ষে একটি বিশেষ চিহ্ন (!@#$%) থাকতে হবে।"
+            : "",
+        ].filter(Boolean)
+      : [];
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSubmitted(true);
 
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
-    // Form Validations
+    // Name validation
     if (!trimmedName) {
       const msg = "অনুগ্রহ করে আপনার নাম লিখুন।";
       setErrorMessage(msg);
@@ -34,36 +78,47 @@ export default function SignUpForm() {
       return;
     }
 
-    if (!trimmedEmail) {
-      const msg = "অনুগ্রহ করে ইমেইল ঠিকানা দিন।";
-      setErrorMessage(msg);
+    // Email validation
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      const msg = !trimmedEmail
+        ? "অনুগ্রহ করে ইমেইল ঠিকানা দিন।"
+        : 'ইমেইলে "@" চিহ্ন থাকতে হবে।';
+
       toast.warn(msg);
       return;
     }
 
-    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
-      const msg = "অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা প্রদান করুন।";
-      setErrorMessage(msg);
-      toast.warn(msg);
+    // Password validation
+    const currentPasswordErrors = [
+      !password
+        ? "অনুগ্রহ করে পাসওয়ার্ড প্রদান করুন।"
+        : "",
+      password && password.length < 8
+        ? "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।"
+        : "",
+      password && !/[A-Z]/.test(password)
+        ? "কমপক্ষে একটি বড় হাতের ইংরেজি অক্ষর (A-Z) থাকতে হবে।"
+        : "",
+      password && !/[a-z]/.test(password)
+        ? "কমপক্ষে একটি ছোট হাতের ইংরেজি অক্ষর (a-z) থাকতে হবে।"
+        : "",
+      password && !/[0-9]/.test(password)
+        ? "কমপক্ষে একটি সংখ্যা (0-9) থাকতে হবে।"
+        : "",
+      password && !/[^A-Za-z0-9]/.test(password)
+        ? "কমপক্ষে একটি বিশেষ চিহ্ন (!@#$%) থাকতে হবে।"
+        : "",
+    ].filter(Boolean);
+
+    if (currentPasswordErrors.length > 0) {
+      toast.warn(currentPasswordErrors[0]);
       return;
     }
 
-    if (!password) {
-      const msg = "অনুগ্রহ করে পাসওয়ার্ড প্রদান করুন।";
-      setErrorMessage(msg);
-      toast.warn(msg);
-      return;
-    }
-
-    if (password.length < 8) {
-      const msg = "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।";
-      setErrorMessage(msg);
-      toast.warn(msg);
-      return;
-    }
-
+    // Confirm password validation
     if (password !== confirmPassword) {
-      const msg = "পাসওয়ার্ড দুটি মিলছে না। অনুগ্রহ করে যাচাই করুন।";
+      const msg =
+        "পাসওয়ার্ড দুটি মিলছে না। অনুগ্রহ করে যাচাই করুন।";
       setErrorMessage(msg);
       toast.error(msg);
       return;
@@ -81,12 +136,16 @@ export default function SignUpForm() {
       if (res?.error) {
         const errorText =
           res.error.message ||
-          "নিবন্ধন সম্পন্ন করা যায়নি। এই ইমেইলে ইতোমধ্যে অ্যাকাউন্ট থাকতে পারে।";
+          "নিবন্ধন সম্পন্ন করা যায়নি। এই ইমেইলে ইতোমধ্যে অ্যাকাউন্ট থাকতে পারে.";
+
         setErrorMessage(errorText);
         toast.error(errorText);
       } else {
-        toast.success("অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে! অনুগ্রহ করে সাইন ইন করুন।");
-        // Navigating to Login Page as specified
+        toast.success(
+          "অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে! অনুগ্রহ করে সাইন ইন করুন।"
+        );
+
+        // Navigate to the Sign In page
         router.push("/signin");
       }
     } catch (err: unknown) {
@@ -94,6 +153,7 @@ export default function SignUpForm() {
         err instanceof Error
           ? err.message
           : "নিবন্ধন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।";
+
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -103,7 +163,7 @@ export default function SignUpForm() {
 
   return (
     <div className="w-full max-w-[460px] rounded-2xl bg-white p-8 shadow-sm border border-gray-100/80 sm:p-9">
-      {/* Inline Error Alert */}
+      {/* Authentication Error Alert */}
       {errorMessage && (
         <div className="mb-5 flex items-start gap-2.5 rounded-xl bg-red-50 p-3.5 text-xs sm:text-sm text-red-700 border border-red-200">
           <svg
@@ -119,12 +179,19 @@ export default function SignUpForm() {
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="flex-1 font-medium">{errorMessage}</div>
+
+          <div className="flex-1 font-medium">
+            {errorMessage}
+          </div>
         </div>
       )}
 
       {/* Main Registration Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4"
+      >
         {/* Name Field */}
         <div>
           <label
@@ -133,6 +200,7 @@ export default function SignUpForm() {
           >
             নাম
           </label>
+
           <input
             id="signup-name"
             name="name"
@@ -155,6 +223,7 @@ export default function SignUpForm() {
           >
             ইমেইল
           </label>
+
           <input
             id="signup-email"
             name="email"
@@ -162,11 +231,30 @@ export default function SignUpForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setEmailTouched(true)}
             placeholder="you@example.com"
             disabled={isLoading}
-            className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:border-[#039648] focus:outline-none focus:ring-2 focus:ring-[#039648]/20 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            aria-invalid={!!emailError}
+            aria-describedby={
+              emailError ? "signup-email-error" : undefined
+            }
+            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed ${
+              emailError
+                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                : "border-gray-300 focus:border-[#039648] focus:ring-[#039648]/20"
+            }`}
             required
           />
+
+          {emailError && (
+            <p
+              id="signup-email-error"
+              className="mt-1.5 text-xs text-red-600"
+              role="alert"
+            >
+              {emailError}
+            </p>
+          )}
         </div>
 
         {/* Password Field with visibility toggle */}
@@ -177,6 +265,7 @@ export default function SignUpForm() {
           >
             পাসওয়ার্ড
           </label>
+
           <div className="relative">
             <input
               id="signup-password"
@@ -185,18 +274,36 @@ export default function SignUpForm() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => setPasswordTouched(true)}
               placeholder="কমপক্ষে ৮ অক্ষর"
               disabled={isLoading}
-              className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:border-[#039648] focus:outline-none focus:ring-2 focus:ring-[#039648]/20 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              aria-invalid={passwordErrors.length > 0}
+              aria-describedby={
+                passwordErrors.length > 0
+                  ? "signup-password-error"
+                  : undefined
+              }
+              className={`w-full rounded-xl border bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                passwordErrors.length > 0
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                  : "border-gray-300 focus:border-[#039648] focus:ring-[#039648]/20"
+              }`}
               required
             />
+
             <button
               type="button"
-              onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+              onClick={() =>
+                setIsPasswordVisible(!isPasswordVisible)
+              }
               disabled={isLoading}
               tabIndex={-1}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1 cursor-pointer transition-colors"
-              aria-label={isPasswordVisible ? "পাসওয়ার্ড লুকান" : "পাসওয়ার্ড দেখুন"}
+              aria-label={
+                isPasswordVisible
+                  ? "পাসওয়ার্ড লুকান"
+                  : "পাসওয়ার্ড দেখুন"
+              }
             >
               {isPasswordVisible ? (
                 <svg
@@ -235,6 +342,18 @@ export default function SignUpForm() {
               )}
             </button>
           </div>
+
+          {passwordErrors.length > 0 && (
+            <ul
+              id="signup-password-error"
+              className="mt-1.5 space-y-1 text-xs text-red-600"
+              role="alert"
+            >
+              {passwordErrors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Confirm Password Field with visibility toggle */}
@@ -245,11 +364,14 @@ export default function SignUpForm() {
           >
             পাসওয়ার্ড নিশ্চিত করুন
           </label>
+
           <div className="relative">
             <input
               id="signup-confirmPassword"
               name="confirmPassword"
-              type={isConfirmPasswordVisible ? "text" : "password"}
+              type={
+                isConfirmPasswordVisible ? "text" : "password"
+              }
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -258,13 +380,22 @@ export default function SignUpForm() {
               className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition duration-150 focus:border-[#039648] focus:outline-none focus:ring-2 focus:ring-[#039648]/20 disabled:bg-gray-100 disabled:cursor-not-allowed"
               required
             />
+
             <button
               type="button"
-              onClick={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
+              onClick={() =>
+                setIsConfirmPasswordVisible(
+                  !isConfirmPasswordVisible
+                )
+              }
               disabled={isLoading}
               tabIndex={-1}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1 cursor-pointer transition-colors"
-              aria-label={isConfirmPasswordVisible ? "পাসওয়ার্ড লুকান" : "পাসওয়ার্ড দেখুন"}
+              aria-label={
+                isConfirmPasswordVisible
+                  ? "পাসওয়ার্ড লুকান"
+                  : "পাসওয়ার্ড দেখুন"
+              }
             >
               {isConfirmPasswordVisible ? (
                 <svg
@@ -303,6 +434,17 @@ export default function SignUpForm() {
               )}
             </button>
           </div>
+
+          {submitted &&
+            confirmPassword &&
+            password !== confirmPassword && (
+              <p
+                className="mt-1.5 text-xs text-red-600"
+                role="alert"
+              >
+                পাসওয়ার্ড দুটি মিলছে না। অনুগ্রহ করে যাচাই করুন।
+              </p>
+            )}
         </div>
 
         {/* Submit Button */}
@@ -333,6 +475,7 @@ export default function SignUpForm() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
+
               <span>নিবন্ধন হচ্ছে...</span>
             </>
           ) : (
@@ -344,6 +487,7 @@ export default function SignUpForm() {
       {/* Divider */}
       <div className="relative my-6 flex items-center justify-center">
         <div className="w-full border-t border-gray-200" />
+
         <span className="absolute bg-white px-3 text-xs font-medium text-gray-500">
           অথবা
         </span>
