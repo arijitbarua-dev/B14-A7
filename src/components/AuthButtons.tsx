@@ -61,7 +61,9 @@ export default function AuthButtons() {
             {user.image ? (
               <Image
                 src={user.image}
-                alt=""
+                alt="Profile picture"
+                width={44}
+                height={44}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -75,9 +77,8 @@ export default function AuthButtons() {
 
           {/* Dropdown Arrow */}
           <svg
-            className={`h-3 w-3 shrink-0 text-gray-500 transition-transform duration-200 ${
-              profileOpen ? "rotate-180" : ""
-            }`}
+            className={`h-3 w-3 shrink-0 text-gray-500 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""
+              }`}
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"

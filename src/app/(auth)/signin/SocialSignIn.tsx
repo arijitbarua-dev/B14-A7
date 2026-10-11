@@ -9,32 +9,54 @@ interface SocialSignInProps {
 }
 
 export default function SocialSignIn({ disabled }: SocialSignInProps) {
-  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(null);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "github" | null
+  >(null);
 
-  const handleSocialLogin = async (provider: "google" | "github") => {
+  const handleSocialLogin = async (
+    provider: "google" | "github"
+  ) => {
     setSocialLoading(provider);
-    const providerName = provider === "google" ? "Google" : "GitHub";
+
+    const providerName =
+      provider === "google" ? "Google" : "GitHub";
 
     try {
       toast.info(`${providerName} দিয়ে লগইন করা হচ্ছে...`);
+
       const res = await signIn.social({
         provider,
         callbackURL: "/",
+        disableRedirect: true,
       });
 
-      if (res?.error) {
+      if (res.error) {
         toast.error(
           res.error.message ||
             `${providerName} লগইন সম্পন্ন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।`
         );
+
+        setSocialLoading(null);
+        return;
       }
+
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+        return;
+      }
+
+      toast.error(
+        `${providerName} authentication URL পাওয়া যায়নি।`
+      );
+
+      setSocialLoading(null);
     } catch (err: unknown) {
       const msg =
         err instanceof Error
           ? err.message
           : `${providerName} লগইন ব্যর্থ হয়েছে।`;
+
       toast.error(msg);
-    } finally {
       setSocialLoading(null);
     }
   };
@@ -51,7 +73,11 @@ export default function SocialSignIn({ disabled }: SocialSignInProps) {
         {socialLoading === "google" ? (
           <span className="loading loading-spinner loading-xs text-gray-600"></span>
         ) : (
-          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+          <svg
+            className="h-4 w-4 shrink-0"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -70,7 +96,10 @@ export default function SocialSignIn({ disabled }: SocialSignInProps) {
             />
           </svg>
         )}
-        <span className="truncate">Google দিয়ে চালিয়ে যান</span>
+
+        <span className="truncate">
+          Google দিয়ে চালিয়ে যান
+        </span>
       </button>
 
       {/* GitHub Sign In */}
@@ -83,7 +112,11 @@ export default function SocialSignIn({ disabled }: SocialSignInProps) {
         {socialLoading === "github" ? (
           <span className="loading loading-spinner loading-xs text-gray-600"></span>
         ) : (
-          <svg className="h-4 w-4 shrink-0 fill-gray-900" viewBox="0 0 24 24">
+          <svg
+            className="h-4 w-4 shrink-0 fill-gray-900"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path
               fillRule="evenodd"
               clipRule="evenodd"
@@ -91,7 +124,10 @@ export default function SocialSignIn({ disabled }: SocialSignInProps) {
             />
           </svg>
         )}
-        <span className="truncate">GitHub দিয়ে চালিয়ে যান</span>
+
+        <span className="truncate">
+          GitHub দিয়ে চালিয়ে যান
+        </span>
       </button>
     </div>
   );

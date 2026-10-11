@@ -19,6 +19,31 @@ export default function ProfilePage() {
     }
   }, [session, isPending, router]);
 
+  // Sign out handler
+  const handleSignOut = async () => {
+    try {
+      const res = await authClient.signOut();
+
+      if (res?.error) {
+        toast.error(
+          res.error.message || "সাইন আউট করতে সমস্যা হয়েছে।"
+        );
+        return;
+      }
+
+      toast.success("সফলভাবে সাইন আউট হয়েছে!");
+      router.push("/signin");
+      router.refresh();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "সাইন আউট করতে সমস্যা হয়েছে।";
+
+      toast.error(msg);
+    }
+  };
+
   const handleUpdateUser = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -117,7 +142,9 @@ export default function ProfilePage() {
             {user.image ? (
               <Image
                 src={user.image}
-                alt=""
+                alt="Profile picture"
+                width={48}
+                height={48}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -134,6 +161,16 @@ export default function ProfilePage() {
               {user.email}
             </p>
           </div>
+
+          {/* Sign Out Button */}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-500 px-3 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-50 active:scale-[0.98]"
+          >
+            <span aria-hidden="true">↵</span>
+            সাইন আউট
+          </button>
         </div>
 
         {/* Profile Update Card */}
